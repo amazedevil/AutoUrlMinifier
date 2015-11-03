@@ -1,20 +1,21 @@
 package main
 
 import (
-	"github.com/xilp/systray"
-	"github.com/atotto/clipboard"
-	"os"
-	"time"
-	"io/ioutil"
-	"strings"
-	"regexp"
-	"net/http"
-	"encoding/json"
 	"bytes"
+	"encoding/json"
+	"io/ioutil"
+	"net/http"
+	"os"
+	"regexp"
+	"strings"
+	"time"
+
+	"github.com/atotto/clipboard"
+	"github.com/xilp/systray"
 )
 
 const (
-	URLS_FILENAME = "urls.txt"
+	URLS_FILENAME  = "urls.txt"
 	GOOGLE_API_KEY = "<GOOGLE_API_KEY>"
 )
 
@@ -23,10 +24,7 @@ var lastClipboardValue string = ""
 
 func main() {
 	readConfig()
-	tray := systray.New(
-		"", 
-		"", 
-		6333)
+	tray := systray.New("", "", 6333)
 	tray.OnClick(func() {
 		os.Exit(0)
 	})
@@ -35,13 +33,13 @@ func main() {
 		println(err.Error())
 	}
 
-	go func() {		
+	go func() {
 		for {
-			time.Sleep(time.Duration(1)*time.Second)
+			time.Sleep(time.Duration(1) * time.Second)
 			processClipboard()
 		}
 	}()
-	
+
 	err = tray.Run()
 	if err != nil {
 		println(err.Error())
@@ -51,23 +49,23 @@ func main() {
 func minify(url string) string {
 	var jsonStr = []byte(`{"longUrl":"` + url + `"}`)
 	req, _ := http.NewRequest(
-		"POST", 
-		"https://www.googleapis.com/urlshortener/v1/url?key=" + GOOGLE_API_KEY,
+		"POST",
+		"https://www.googleapis.com/urlshortener/v1/url?key="+GOOGLE_API_KEY,
 		bytes.NewBuffer(jsonStr))
 	req.Header.Set("Content-Type", "application/json")
-	
-	client := &http.Client{}
-    resp, err := client.Do(req)
-    if err != nil {
-        panic(err)
-    }
-    defer resp.Body.Close()
 
-    body, err := ioutil.ReadAll(resp.Body)
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		panic(err)
+	}
+	defer resp.Body.Close()
+
+	body, err := ioutil.ReadAll(resp.Body)
 	if err == nil {
 		type ShortUrl struct {
-			Kind string
-			Id string
+			Kind    string
+			Id      string
 			LongUrl string
 		}
 		var su ShortUrl
@@ -76,7 +74,7 @@ func minify(url string) string {
 			return su.Id
 		}
 	}
-	
+
 	return ""
 }
 
@@ -87,7 +85,7 @@ func processClipboard() {
 		found := false
 		for _, urlPattern := range urls {
 			m, _ := regexp.MatchString(
-				"\\A" + strings.Replace(urlPattern, "*", "(.*)", -1) + "\\z", 
+				"\\A"+strings.Replace(urlPattern, "*", "(.*)", -1)+"\\z",
 				val)
 			if m {
 				found = true
@@ -107,10 +105,14 @@ func processClipboard() {
 }
 
 func isFileExists(path string) bool {
-    _, err := os.Stat(path)
-    if err == nil { return true }
-    if os.IsNotExist(err) { return false }
-    return true
+	_, err := os.Stat(path)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return false
+	}
+	return true
 }
 
 func readConfig() {
