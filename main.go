@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"regexp"
+	"runtime"
 	"strings"
 	"time"
 
@@ -15,8 +16,9 @@ import (
 )
 
 const (
-	URLS_FILENAME  = "urls.txt"
-	GOOGLE_API_KEY = "<GOOGLE_API_KEY>"
+	URLS_FILENAME            = "urls.txt"
+	GOOGLE_API_KEY           = "<GOOGLE_API_KEY>"
+	CLIPBOARD_CHECK_INTERVAL = time.Duration(500) * time.Millisecond
 )
 
 var urls []string
@@ -24,18 +26,22 @@ var lastClipboardValue string = ""
 
 func main() {
 	readConfig()
-	tray := systray.New("", "", 6333)
+	tray := systray.New("icons", "systray", 6333)
 	tray.OnClick(func() {
+		tray.Stop()
 		os.Exit(0)
 	})
-	err := tray.Show("icon.ico", "Click to exit")
+	err := tray.Show(map[string]string{
+		"windows": "win_icon.ico",
+		"darwin":  "mac_icon.png",
+	}[runtime.GOOS], "Click to exit")
 	if err != nil {
 		println(err.Error())
 	}
 
 	go func() {
 		for {
-			time.Sleep(time.Duration(1) * time.Second)
+			time.Sleep(CLIPBOARD_CHECK_INTERVAL)
 			processClipboard()
 		}
 	}()
@@ -118,12 +124,10 @@ func isFileExists(path string) bool {
 func readConfig() {
 	if isFileExists(URLS_FILENAME) {
 		bytes, _ := ioutil.ReadFile(URLS_FILENAME)
-		urls = strings.Split(string(bytes), "\n")
-	} else {
-		urls = make([]string, 0, 5)
+		rawUrls := strings.Split(string(bytes), "\n")
+		urls = make([]string, 0, len(rawUrls))
+		for _, v := range rawUrls {
+			urls = append(urls, strings.TrimSpace(v))
+		}
 	}
-}
-
-func writeConfig() {
-	ioutil.WriteFile(URLS_FILENAME, []byte(strings.Join(urls, "\n")), 0644)
 }
